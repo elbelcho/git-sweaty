@@ -14,8 +14,6 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 
 ### Run the setup script
 
-Use either option below. Both run the same setup logic.
-
 #### Option A (single command bootstrap)
 
 ```bash
