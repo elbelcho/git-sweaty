@@ -8,7 +8,7 @@ Automatically generates a free, interactive dashboard updated daily on GitHub Pa
 - Once setup is complete, this dashboard link will automatically update to your own GitHub Pages URL.
 
 
-![Dashboard Preview](site/readme-preview-20260213.png)
+![Dashboard Preview](site/readme-preview-20260215.png)
 
 ## Quick Start
 
