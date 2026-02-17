@@ -88,6 +88,8 @@ class TooltipZoomPositioningTests(unittest.TestCase):
     def _run_wrap_mode_script(self, payload: dict) -> object:
         script = (
             "const payload = JSON.parse(process.argv[1]);\n"
+            "const TOUCH_TOOLTIP_MAX_EFFECTIVE_ZOOM = 1.2;\n"
+            "const TOUCH_TOOLTIP_MIN_SCALE = 0.5;\n"
             "const window = {\n"
             "  innerWidth: payload.inner_width,\n"
             "  innerHeight: payload.inner_height,\n"
@@ -106,8 +108,10 @@ class TooltipZoomPositioningTests(unittest.TestCase):
             "    contains(name) { return this.classes.has(name); },\n"
             "  },\n"
             "};\n"
+            f"{self.sources['clamp']}\n"
             f"{self.sources['get_viewport_metrics']}\n"
             f"{self.sources['tooltip_viewport_anchor_offset']}\n"
+            f"{self.sources['get_touch_tooltip_scale']}\n"
             f"{self.sources['update_touch_tooltip_wrap_mode']}\n"
             "updateTouchTooltipWrapMode();\n"
             "process.stdout.write(JSON.stringify({\n"
@@ -222,6 +226,25 @@ class TooltipZoomPositioningTests(unittest.TestCase):
         self.assertEqual(style["left"], "32px")
         self.assertEqual(style["top"], "22px")
         self.assertFalse(result["nowrap"])
+
+    def test_touch_wrap_mode_uses_scaled_width_budget_when_zoomed(self) -> None:
+        result = self._run_wrap_mode_script(
+            {
+                "inner_width": 1200,
+                "inner_height": 800,
+                "visual_viewport": {
+                    "offsetLeft": 20,
+                    "offsetTop": 10,
+                    "width": 200,
+                    "height": 260,
+                    "scale": 2,
+                },
+                "tooltip_scroll_width": 250,
+            }
+        )
+        style = result["style"]
+        self.assertEqual(style["maxWidth"], "293px")
+        self.assertTrue(result["nowrap"])
 
     def test_touch_tooltip_scale_caps_zoom_growth(self) -> None:
         result = self._run_touch_scale_script(

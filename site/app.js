@@ -965,14 +965,18 @@ function updateTouchTooltipWrapMode() {
   const padding = 12;
   const viewport = getViewportMetrics();
   const anchorOffset = tooltipViewportAnchorOffset(viewport);
+  const touchTooltipScale = getTouchTooltipScale();
+  const effectiveScale = touchTooltipScale > 0 ? touchTooltipScale : 1;
   const availableWidth = Math.max(0, viewport.width - (padding * 2));
   const availableHeight = Math.max(0, viewport.height - (padding * 2));
+  const scaledAvailableWidth = Math.max(0, Math.floor(availableWidth / effectiveScale));
+  const scaledAvailableHeight = Math.max(0, Math.floor(availableHeight / effectiveScale));
   if (availableHeight > 0) {
-    const preferredMaxHeight = Math.max(120, Math.floor(viewport.height * 0.7));
-    const maxHeight = Math.min(availableHeight, preferredMaxHeight);
+    const preferredMaxHeight = Math.max(120, Math.floor((viewport.height * 0.7) / effectiveScale));
+    const maxHeight = Math.min(scaledAvailableHeight, preferredMaxHeight);
     tooltip.style.maxHeight = `${maxHeight}px`;
     tooltip.style.overflowY = "auto";
-    tooltip.style.overflowX = "hidden";
+    tooltip.style.removeProperty("overflow-x");
   } else {
     tooltip.style.removeProperty("max-height");
     tooltip.style.removeProperty("overflow-y");
@@ -983,7 +987,7 @@ function updateTouchTooltipWrapMode() {
     tooltip.classList.remove("nowrap");
     return;
   }
-  const maxWidth = Math.min(320, availableWidth);
+  const maxWidth = scaledAvailableWidth;
   tooltip.style.maxWidth = `${maxWidth}px`;
 
   tooltip.classList.remove("nowrap");
@@ -996,6 +1000,9 @@ function updateTouchTooltipWrapMode() {
   const nowrapWidth = Math.max(0, Number(tooltip.scrollWidth || 0));
   if (!nowrapWidth || nowrapWidth > maxWidth) {
     tooltip.classList.remove("nowrap");
+    tooltip.style.overflowX = "hidden";
+  } else {
+    tooltip.style.removeProperty("overflow-x");
   }
 }
 
