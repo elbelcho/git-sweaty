@@ -42,6 +42,25 @@ def normalize_repo_slug(value: object) -> Optional[str]:
     return None
 
 
+def choose_repo_slug_from_env(
+    dashboard_repo: object,
+    github_repository: object,
+    github_actions: object,
+) -> Optional[str]:
+    configured = normalize_repo_slug(dashboard_repo)
+    current = normalize_repo_slug(github_repository)
+    actions_enabled = str(github_actions or "").strip().lower() == "true"
+
+    if configured and current:
+        if actions_enabled and configured != current:
+            # GitHub Actions always runs for the current repository; prefer it when stale
+            # DASHBOARD_REPO lags behind a renamed fork.
+            return current
+        return configured
+
+    return configured or current
+
+
 def pages_url_from_slug(slug: str) -> str:
     owner, repo = slug.split("/", 1)
     if repo.lower() == f"{owner.lower()}.github.io":

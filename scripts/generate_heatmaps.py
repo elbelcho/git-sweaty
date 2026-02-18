@@ -7,7 +7,7 @@ from datetime import date, timedelta
 from typing import Callable, Dict, List, Optional
 
 from activity_types import build_type_meta, featured_types_from_config, ordered_types
-from repo_helpers import normalize_repo_slug
+from repo_helpers import choose_repo_slug_from_env, normalize_repo_slug
 from utils import (
     ensure_dir,
     format_distance,
@@ -189,10 +189,13 @@ def _type_totals(aggregates_years: Dict) -> Dict[str, int]:
 
 
 def _repo_slug_from_git() -> Optional[str]:
-    for env_name in ("DASHBOARD_REPO", "GITHUB_REPOSITORY"):
-        normalized = normalize_repo_slug(os.environ.get(env_name, ""))
-        if normalized:
-            return normalized
+    env_slug = choose_repo_slug_from_env(
+        dashboard_repo=os.environ.get("DASHBOARD_REPO", ""),
+        github_repository=os.environ.get("GITHUB_REPOSITORY", ""),
+        github_actions=os.environ.get("GITHUB_ACTIONS", ""),
+    )
+    if env_slug:
+        return env_slug
 
     try:
         result = subprocess.run(

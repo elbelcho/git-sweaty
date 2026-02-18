@@ -247,7 +247,19 @@ jobs:
           repo_re = re.compile(r"^[^/\s]+/[^/\s]+$")
           configured_repo = os.environ.get("DASHBOARD_REPO", "").strip()
           default_repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
-          repo = configured_repo if repo_re.match(configured_repo or "") else default_repo
+          configured_valid = bool(repo_re.match(configured_repo or ""))
+          default_valid = bool(repo_re.match(default_repo or ""))
+          if (
+              configured_valid
+              and default_valid
+              and configured_repo != default_repo
+              and str(os.environ.get("GITHUB_ACTIONS", "")).strip().lower() == "true"
+          ):
+              repo = default_repo
+          elif configured_valid:
+              repo = configured_repo
+          else:
+              repo = default_repo
 
           path = "site/data.json"
           try:

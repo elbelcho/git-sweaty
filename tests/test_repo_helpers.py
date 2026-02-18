@@ -36,6 +36,59 @@ class RepoHelpersTests(unittest.TestCase):
     def test_normalize_dashboard_url_rejects_non_http_schemes(self) -> None:
         self.assertEqual(repo_helpers.normalize_dashboard_url("ftp://example.com"), "")
 
+    def test_choose_repo_slug_from_env_prefers_dashboard_repo_by_default(self) -> None:
+        self.assertEqual(
+            repo_helpers.choose_repo_slug_from_env(
+                "owner/custom-fork",
+                "owner/current-repo",
+                "",
+            ),
+            "owner/custom-fork",
+        )
+
+    def test_choose_repo_slug_from_env_prefers_github_repository_on_actions_mismatch(self) -> None:
+        renamed_repo = "owner/custom-renamed-repo"
+        self.assertEqual(
+            repo_helpers.choose_repo_slug_from_env(
+                "owner/git-sweaty",
+                renamed_repo,
+                "true",
+            ),
+            renamed_repo,
+        )
+
+    def test_choose_repo_slug_from_env_prefers_dashboard_repo_when_not_actions(self) -> None:
+        self.assertEqual(
+            repo_helpers.choose_repo_slug_from_env(
+                "owner/custom-fork",
+                "owner/current-repo",
+                "false",
+            ),
+            "owner/custom-fork",
+        )
+
+    def test_choose_repo_slug_from_env_uses_github_repository_when_dashboard_repo_invalid(self) -> None:
+        renamed_repo = "owner/custom-renamed-repo"
+        self.assertEqual(
+            repo_helpers.choose_repo_slug_from_env(
+                "not-a-slug",
+                renamed_repo,
+                "true",
+            ),
+            renamed_repo,
+        )
+
+    def test_choose_repo_slug_from_env_uses_dashboard_repo_when_github_repository_missing(self) -> None:
+        custom_repo = "owner/custom-renamed-repo"
+        self.assertEqual(
+            repo_helpers.choose_repo_slug_from_env(
+                custom_repo,
+                "",
+                "true",
+            ),
+            custom_repo,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

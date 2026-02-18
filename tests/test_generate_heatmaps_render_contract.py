@@ -222,6 +222,36 @@ class GenerateHeatmapsRenderContractTests(unittest.TestCase):
 
         self.assertEqual(repo_slug, "owner/custom-fork")
 
+    def test_repo_slug_prefers_github_repository_on_actions_env_mismatch(self) -> None:
+        renamed_repo = "owner/custom-renamed-repo"
+        with mock.patch.dict(
+            "os.environ",
+            {
+                "DASHBOARD_REPO": "owner/git-sweaty",
+                "GITHUB_REPOSITORY": renamed_repo,
+                "GITHUB_ACTIONS": "true",
+            },
+            clear=False,
+        ):
+            repo_slug = generate_heatmaps._repo_slug_from_git()
+
+        self.assertEqual(repo_slug, renamed_repo)
+
+    def test_repo_slug_uses_github_repository_when_dashboard_repo_invalid(self) -> None:
+        renamed_repo = "owner/custom-renamed-repo"
+        with mock.patch.dict(
+            "os.environ",
+            {
+                "DASHBOARD_REPO": "not-a-slug",
+                "GITHUB_REPOSITORY": renamed_repo,
+                "GITHUB_ACTIONS": "true",
+            },
+            clear=False,
+        ):
+            repo_slug = generate_heatmaps._repo_slug_from_git()
+
+        self.assertEqual(repo_slug, renamed_repo)
+
     def test_generate_includes_strava_profile_url_when_configured(self) -> None:
         captured = {}
 

@@ -8,7 +8,12 @@ from typing import Optional
 
 from aggregate import aggregate as aggregate_func
 from normalize import normalize as normalize_func
-from repo_helpers import normalize_dashboard_url, normalize_repo_slug, pages_url_from_slug
+from repo_helpers import (
+    choose_repo_slug_from_env,
+    normalize_dashboard_url,
+    normalize_repo_slug,
+    pages_url_from_slug,
+)
 from sync_garmin import sync_garmin
 from sync_strava import sync_strava
 from utils import ensure_dir, load_config, normalize_source, write_json
@@ -57,10 +62,13 @@ def _write_aggregates(payload):
 
 
 def _repo_slug_from_git() -> Optional[str]:
-    for env_name in ("DASHBOARD_REPO", "GITHUB_REPOSITORY"):
-        normalized = normalize_repo_slug(os.environ.get(env_name, ""))
-        if normalized:
-            return normalized
+    env_slug = choose_repo_slug_from_env(
+        dashboard_repo=os.environ.get("DASHBOARD_REPO", ""),
+        github_repository=os.environ.get("GITHUB_REPOSITORY", ""),
+        github_actions=os.environ.get("GITHUB_ACTIONS", ""),
+    )
+    if env_slug:
+        return env_slug
 
     try:
         result = subprocess.run(

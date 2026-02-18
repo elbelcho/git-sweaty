@@ -63,6 +63,19 @@ class RunPipelineReadmeLinkTests(unittest.TestCase):
         ):
             self.assertEqual(run_pipeline._repo_slug_from_git(), "owner/custom-fork")
 
+    def test_repo_slug_prefers_github_repository_on_actions_env_mismatch(self) -> None:
+        renamed_repo = "owner/custom-renamed-repo"
+        with mock.patch.dict(
+            os.environ,
+            {
+                "DASHBOARD_REPO": "owner/git-sweaty",
+                "GITHUB_REPOSITORY": renamed_repo,
+                "GITHUB_ACTIONS": "true",
+            },
+            clear=False,
+        ):
+            self.assertEqual(run_pipeline._repo_slug_from_git(), renamed_repo)
+
     def test_dashboard_url_from_pages_api_prefers_cname(self) -> None:
         with (
             mock.patch.dict(os.environ, {"GITHUB_TOKEN": "token-abc"}, clear=False),
@@ -170,6 +183,86 @@ class RunPipelineReadmeLinkTests(unittest.TestCase):
                 updated = handle.read()
             self.assertIn(
                 "View the Interactive [Activity Dashboard](https://michalpalaxo.github.io/git-sweaty/).",
+                updated,
+            )
+
+    def test_update_readme_live_site_link_uses_current_repo_when_actions_env_mismatch(self) -> None:
+        owner = "sampleowner"
+        stale_repo = "template-repo"
+        renamed_repo = "custom-renamed-repo"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            readme_path = os.path.join(tmpdir, "README.md")
+            with open(readme_path, "w", encoding="utf-8") as handle:
+                handle.write(
+                    "# Test\n"
+                    f"View the Interactive [Activity Dashboard](https://{owner}.github.io/{stale_repo}/).  \n"
+                )
+
+            previous_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            try:
+                with (
+                    mock.patch.dict(
+                        os.environ,
+                        {
+                            "DASHBOARD_REPO": f"{owner}/{stale_repo}",
+                            "GITHUB_REPOSITORY": f"{owner}/{renamed_repo}",
+                            "GITHUB_ACTIONS": "true",
+                        },
+                        clear=False,
+                    ),
+                    mock.patch("run_pipeline._dashboard_url_from_pages_api", return_value=None),
+                ):
+                    run_pipeline._update_readme_live_site_link()
+            finally:
+                os.chdir(previous_cwd)
+
+            with open(readme_path, "r", encoding="utf-8") as handle:
+                updated = handle.read()
+            self.assertIn(
+                f"View the Interactive [Activity Dashboard](https://{owner}.github.io/{renamed_repo}/).",
+                updated,
+            )
+
+    def test_update_readme_live_site_link_prefers_custom_domain_even_when_repo_envs_mismatch(self) -> None:
+        owner = "sampleowner"
+        stale_repo = "template-repo"
+        renamed_repo = "custom-renamed-repo"
+        custom_dashboard_url = "https://dashboard.example.test/"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            readme_path = os.path.join(tmpdir, "README.md")
+            with open(readme_path, "w", encoding="utf-8") as handle:
+                handle.write(
+                    "# Test\n"
+                    f"View the Interactive [Activity Dashboard](https://{owner}.github.io/{stale_repo}/).  \n"
+                )
+
+            previous_cwd = os.getcwd()
+            os.chdir(tmpdir)
+            try:
+                with (
+                    mock.patch.dict(
+                        os.environ,
+                        {
+                            "DASHBOARD_REPO": f"{owner}/{stale_repo}",
+                            "GITHUB_REPOSITORY": f"{owner}/{renamed_repo}",
+                            "GITHUB_ACTIONS": "true",
+                        },
+                        clear=False,
+                    ),
+                    mock.patch(
+                        "run_pipeline._dashboard_url_from_pages_api",
+                        return_value=custom_dashboard_url,
+                    ),
+                ):
+                    run_pipeline._update_readme_live_site_link()
+            finally:
+                os.chdir(previous_cwd)
+
+            with open(readme_path, "r", encoding="utf-8") as handle:
+                updated = handle.read()
+            self.assertIn(
+                f"View the Interactive [Activity Dashboard]({custom_dashboard_url}).",
                 updated,
             )
 
