@@ -20,7 +20,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/aspain/git-sweaty/main/scrip
 
 You will be prompted for:
 - Setup mode:
-  - Recommended (Online-only, no local clone): setup script will use an existing fork or create a new fork, or configure an existing writable repo.
+  - Recommended (Online-only, no local clone): setup script will either:
+    - use an existing fork
+    - create a new fork
+    - configure an existing writable repo
   - Advanced (Local clone + git remotes): setup script will prefer an existing compatible local clone when available, or guide fork-and-clone setup, then complete the rest of the setup.
 - GitHub Pages custom domain (if you have one, for example `yoursite.example.com`)
 - Source (`strava` or `garmin`)
