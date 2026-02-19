@@ -84,6 +84,7 @@ let touchTooltipPointerDownState = null;
 let tooltipPositionFrame = null;
 let tooltipSettleFrame = null;
 let pendingTooltipPoint = null;
+let tooltipResizeObserver = null;
 const PROFILE_PROVIDER_STRAVA = "strava";
 const PROFILE_PROVIDER_GARMIN = "garmin";
 const TOUCH_TOOLTIP_TAP_MAX_MOVE_PX = 10;
@@ -1379,6 +1380,18 @@ function getTouchTooltipScale() {
   return clamp(desiredScale, TOUCH_TOOLTIP_MIN_SCALE, 1);
 }
 
+function updateDesktopTooltipBounds() {
+  if (useTouchInteractions) return;
+  const padding = 12;
+  const viewport = getViewportMetrics();
+  const maxWidth = Math.max(200, Math.floor(viewport.width - (padding * 2)));
+  const maxHeight = Math.max(120, Math.floor(viewport.height - (padding * 2)));
+  tooltip.style.maxWidth = `${maxWidth}px`;
+  tooltip.style.maxHeight = `${maxHeight}px`;
+  tooltip.style.overflowY = "auto";
+  tooltip.style.overflowX = "hidden";
+}
+
 function positionTooltip(x, y) {
   const padding = 12;
   const rect = tooltip.getBoundingClientRect();
@@ -1409,6 +1422,49 @@ function positionTooltip(x, y) {
   tooltip.style.left = `${left}px`;
   tooltip.style.top = `${top}px`;
   tooltip.style.bottom = "auto";
+  const finalRect = tooltip.getBoundingClientRect();
+  const finalMaxX = Math.max(minX, anchorOffset.x + viewport.width - finalRect.width - padding);
+  const finalMaxY = Math.max(minY, anchorOffset.y + viewport.height - finalRect.height - padding);
+  const finalPreferredLeft = anchorX + padding;
+  const finalAlternateLeft = anchorX - finalRect.width - padding;
+  const adjustedLeft = pickTooltipCoordinate(finalPreferredLeft, finalAlternateLeft, minX, finalMaxX);
+  const finalPreferredTop = useTouchInteractions
+    ? (anchorY - finalRect.height - padding)
+    : (anchorY + padding);
+  const finalAlternateTop = useTouchInteractions
+    ? (anchorY + padding)
+    : (anchorY - finalRect.height - padding);
+  const adjustedTop = pickTooltipCoordinate(finalPreferredTop, finalAlternateTop, minY, finalMaxY);
+  if (Math.abs(adjustedLeft - finalRect.left) > 0.5) {
+    tooltip.style.left = `${adjustedLeft}px`;
+  }
+  if (Math.abs(adjustedTop - finalRect.top) > 0.5) {
+    tooltip.style.top = `${adjustedTop}px`;
+  }
+  if (!useTouchInteractions && window.visualViewport) {
+    const visualViewport = window.visualViewport;
+    const vvLeft = Number.isFinite(visualViewport.offsetLeft) ? visualViewport.offsetLeft : 0;
+    const vvTop = Number.isFinite(visualViewport.offsetTop) ? visualViewport.offsetTop : 0;
+    const vvWidth = Number.isFinite(visualViewport.width) ? visualViewport.width : viewport.width;
+    const vvHeight = Number.isFinite(visualViewport.height) ? visualViewport.height : viewport.height;
+    const afterClampRect = tooltip.getBoundingClientRect();
+    const vvMinX = vvLeft + padding;
+    const vvMinY = vvTop + padding;
+    const vvMaxX = Math.max(vvMinX, vvLeft + vvWidth - afterClampRect.width - padding);
+    const vvMaxY = Math.max(vvMinY, vvTop + vvHeight - afterClampRect.height - padding);
+    const vvPreferredLeft = anchorX + padding;
+    const vvAlternateLeft = anchorX - afterClampRect.width - padding;
+    const vvAdjustedLeft = pickTooltipCoordinate(vvPreferredLeft, vvAlternateLeft, vvMinX, vvMaxX);
+    const vvPreferredTop = anchorY + padding;
+    const vvAlternateTop = anchorY - afterClampRect.height - padding;
+    const vvAdjustedTop = pickTooltipCoordinate(vvPreferredTop, vvAlternateTop, vvMinY, vvMaxY);
+    if (Math.abs(vvAdjustedLeft - afterClampRect.left) > 0.5) {
+      tooltip.style.left = `${vvAdjustedLeft}px`;
+    }
+    if (Math.abs(vvAdjustedTop - afterClampRect.top) > 0.5) {
+      tooltip.style.top = `${vvAdjustedTop}px`;
+    }
+  }
 }
 
 function updateTouchTooltipWrapMode() {
@@ -1611,11 +1667,8 @@ function showTooltip(content, x, y, options = {}) {
     }
   } else {
     tooltip.classList.remove("touch");
-    tooltip.style.removeProperty("max-width");
-    tooltip.style.removeProperty("max-height");
-    tooltip.style.removeProperty("overflow-y");
-    tooltip.style.removeProperty("overflow-x");
-    tooltip.style.removeProperty("transform");
+    updateDesktopTooltipBounds();
+    tooltip.style.transform = "none";
     tooltip.style.removeProperty("transform-origin");
   }
   tooltip.classList.add("visible");
@@ -1814,6 +1867,7 @@ function isPointInsideTooltip(event) {
 }
 
 function hasActiveTooltipCell() {
+  if (!useTouchInteractions) return false;
   return Boolean(document.querySelector(".cell.active"));
 }
 
@@ -4747,9 +4801,21 @@ async function init() {
   syncUnitToggleState();
   update();
 
+  if (!useTouchInteractions && typeof window.ResizeObserver === "function" && !tooltipResizeObserver) {
+    tooltipResizeObserver = new window.ResizeObserver(() => {
+      if (!tooltip.classList.contains("visible")) return;
+      if (!pendingTooltipPoint) return;
+      positionTooltip(pendingTooltipPoint.x, pendingTooltipPoint.y);
+    });
+    tooltipResizeObserver.observe(tooltip);
+  }
+
   if (document.fonts?.ready) {
     document.fonts.ready.then(() => {
       requestLayoutAlignment();
+      if (!useTouchInteractions && tooltip.classList.contains("visible") && pendingTooltipPoint) {
+        positionTooltip(pendingTooltipPoint.x, pendingTooltipPoint.y);
+      }
     }).catch(() => {});
   }
 
