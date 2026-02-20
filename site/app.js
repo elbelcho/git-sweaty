@@ -64,6 +64,8 @@ const useTouchInteractions = isTouch || hasTouchInput;
 const BREAKPOINTS = Object.freeze({
   NARROW_LAYOUT_MAX: 900,
 });
+const DESKTOP_MIN_YEAR_HEATMAP_WEEK_COLUMNS = 54;
+const DESKTOP_OUTLIER_WEEK_TOLERANCE_COLUMNS = 1;
 const FILTER_MENU_DROPDOWN_GAP_PX = 6;
 const FILTER_MENU_VIEWPORT_GUTTER_PX = 12;
 const FILTER_MENU_MIN_HEIGHT_PX = 180;
@@ -983,6 +985,45 @@ function getElementContentWidth(element) {
   return Math.max(0, element.clientWidth - paddingLeft - paddingRight);
 }
 
+function getYearCardWeekColumnCount(card) {
+  const heatmapArea = card?.querySelector(".heatmap-area");
+  if (!heatmapArea) return 0;
+  const rawValue = Number(heatmapArea.dataset.weekColumns || "");
+  return Number.isFinite(rawValue) && rawValue > 0 ? rawValue : 0;
+}
+
+function getYearHeatmapWeekStep(referenceElement) {
+  if (!referenceElement) return 0;
+  const cell = readCssVar("--cell", 12, referenceElement);
+  const gap = readCssVar("--gap", 2, referenceElement);
+  const step = cell + gap;
+  return Number.isFinite(step) && step > 0 ? step : 0;
+}
+
+function getDominantYearRailWidth(widths) {
+  const finiteWidths = widths.filter((width) => Number.isFinite(width) && width > 0);
+  if (!finiteWidths.length) return 0;
+  const buckets = new Map();
+  finiteWidths.forEach((width) => {
+    const bucket = Math.round(width);
+    const current = buckets.get(bucket) || { count: 0, minWidth: width };
+    current.count += 1;
+    current.minWidth = Math.min(current.minWidth, width);
+    buckets.set(bucket, current);
+  });
+  let bestBucket = null;
+  let bestCount = -1;
+  let bestBucketWidth = 0;
+  buckets.forEach((entry, bucket) => {
+    if (entry.count > bestCount || (entry.count === bestCount && bucket > bestBucketWidth)) {
+      bestCount = entry.count;
+      bestBucket = entry;
+      bestBucketWidth = bucket;
+    }
+  });
+  return bestBucket ? bestBucket.minWidth : 0;
+}
+
 function alignFrequencyMetricChipsToSecondGraphAxis(frequencyCard, title, metricChipRow) {
   metricChipRow.style.removeProperty("margin-left");
   const secondGraphYearLabel = frequencyCard.querySelector(
@@ -1071,13 +1112,39 @@ function buildSectionLayoutPlan(list) {
   const yearCards = Array.from(list.querySelectorAll(".labeled-card-row-year .year-card"));
   if (!frequencyCard && !yearCards.length) return null;
 
+  const desktopLike = isDesktopLikeViewport();
   const yearGraphWidths = yearCards
     .map((card) => getElementBoxWidth(card.querySelector(".heatmap-area")))
     .filter((width) => width > 0);
+  const maxYearWeekColumns = yearCards.reduce(
+    (maxColumns, card) => Math.max(maxColumns, getYearCardWeekColumnCount(card)),
+    0,
+  );
 
   let graphRailWidth = yearGraphWidths.length ? Math.max(...yearGraphWidths) : 0;
+  const dominantYearRailWidth = getDominantYearRailWidth(yearGraphWidths);
   let frequencyGap = null;
   let frequencyPadRight = null;
+  let desktopCalendarOverflowAllowance = 0;
+  const weekStepReference = yearCards[0]?.querySelector(".heatmap-area") || frequencyCard || list;
+  const weekStep = getYearHeatmapWeekStep(weekStepReference);
+
+  if (
+    desktopLike
+    && graphRailWidth > 0
+    && maxYearWeekColumns > 0
+    && weekStep > 0
+  ) {
+    const missingWeeks = Math.max(0, DESKTOP_MIN_YEAR_HEATMAP_WEEK_COLUMNS - maxYearWeekColumns);
+    if (missingWeeks > 0) {
+      const baselineExpansion = missingWeeks * weekStep;
+      desktopCalendarOverflowAllowance += baselineExpansion;
+    }
+
+    if (maxYearWeekColumns >= DESKTOP_MIN_YEAR_HEATMAP_WEEK_COLUMNS) {
+      desktopCalendarOverflowAllowance += DESKTOP_OUTLIER_WEEK_TOLERANCE_COLUMNS * weekStep;
+    }
+  }
 
   if (frequencyCard) {
     const frequencyCols = Array.from(frequencyCard.querySelectorAll(".more-stats-grid > .more-stats-col"));
@@ -1092,7 +1159,15 @@ function buildSectionLayoutPlan(list) {
     }
 
     if (graphRailWidth > 0 && totalFrequencyGraphWidth > 0) {
-      const totalGap = Math.max(0, graphRailWidth - totalFrequencyGraphWidth);
+      const frequencyRailWidth = (
+        desktopLike
+        && dominantYearRailWidth > 0
+        && dominantYearRailWidth < graphRailWidth
+      )
+        ? dominantYearRailWidth
+        : graphRailWidth;
+      const targetRailWidth = Math.max(totalFrequencyGraphWidth, frequencyRailWidth);
+      const totalGap = Math.max(0, targetRailWidth - totalFrequencyGraphWidth);
       if (graphCount > 1) {
         const gapCount = graphCount - 1;
         const desiredTrailingPad = isNarrowLayoutViewport()
@@ -1115,7 +1190,6 @@ function buildSectionLayoutPlan(list) {
   ];
 
   let shouldStackSection = false;
-  const desktopLike = isDesktopLikeViewport();
   cards.forEach((card) => {
     const statsColumn = card.classList.contains("more-stats")
       ? card.querySelector(".more-stats-facts.side-stats-column")
@@ -1132,7 +1206,7 @@ function buildSectionLayoutPlan(list) {
     const availableWidth = getElementContentWidth(card);
     const overflow = requiredWidth - availableWidth;
     const tolerance = desktopLike
-      ? readCssVar("--stack-overflow-tolerance-desktop", 0, card)
+      ? (readCssVar("--stack-overflow-tolerance-desktop", 0, card) + desktopCalendarOverflowAllowance)
       : 0;
     if (overflow > tolerance) {
       shouldStackSection = true;
@@ -2871,6 +2945,10 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
   const yearEnd = utcDateFromParts(year, 11, 31);
   const start = weekStartOnOrBeforeUtc(yearStart, weekStart);
   const end = weekEndOnOrAfterUtc(yearEnd, weekStart);
+  const weekColumns = weekIndexFromWeekStartUtc(end, start) + 1;
+  if (weekColumns > 0) {
+    heatmapArea.dataset.weekColumns = String(weekColumns);
+  }
 
   for (let month = 0; month < 12; month += 1) {
     const monthStart = utcDateFromParts(year, month, 1);
@@ -2950,7 +3028,7 @@ function buildHeatmapArea(aggregates, year, units, colors, type, layout, options
       : "";
     const lines = [createTooltipTextLine(dateStr)];
     if (singleTypeLabel) {
-      lines.push(createTooltipLinkedTypeLine("1 ", singleTypeLabel, "", singleActivityLink));
+      lines.push(createTooltipLinkedTypeLine("", singleTypeLabel, "", singleActivityLink));
     } else {
       lines.push(createTooltipTextLine(formatActivityCountLabel(entry.count, type === "all" ? [] : [type])));
     }
@@ -4017,6 +4095,64 @@ function renderLoadError(error) {
   heatmaps.appendChild(card);
 }
 
+function applyDebugPayloadOverrides(payload) {
+  if (!payload || typeof payload !== "object" || typeof window === "undefined") return;
+  const params = new URLSearchParams(window.location.search);
+  const debugYearRaw = params.get("debugYear");
+  const debugWeekStartRaw = String(params.get("debugWeekStart") || "").trim().toLowerCase();
+
+  if (debugWeekStartRaw === "monday" || debugWeekStartRaw === "mon") {
+    payload.week_start = WEEK_START_MONDAY;
+  } else if (debugWeekStartRaw === "sunday" || debugWeekStartRaw === "sun") {
+    payload.week_start = WEEK_START_SUNDAY;
+  }
+
+  if (!debugYearRaw) return;
+  const debugYear = Number(debugYearRaw);
+  if (!Number.isInteger(debugYear) || debugYear < 1900 || debugYear > 2100) return;
+
+  if (!Array.isArray(payload.types)) payload.types = [];
+  if (!Array.isArray(payload.years)) payload.years = [];
+  if (!Array.isArray(payload.activities)) payload.activities = [];
+  if (!payload.aggregates || typeof payload.aggregates !== "object") payload.aggregates = {};
+
+  const fallbackType = "Run";
+  const debugType = payload.types.length ? String(payload.types[0]) : fallbackType;
+  if (!payload.types.includes(debugType)) {
+    payload.types.push(debugType);
+  }
+
+  const debugDate = `${debugYear}-01-01`;
+  const debugYearKey = String(debugYear);
+  payload.aggregates[debugYearKey] = payload.aggregates[debugYearKey] || {};
+  payload.aggregates[debugYearKey][debugType] = payload.aggregates[debugYearKey][debugType] || {};
+  payload.aggregates[debugYearKey][debugType][debugDate] = {
+    count: 1,
+    distance: 1609.344,
+    moving_time: 1800,
+    elevation_gain: 30,
+    activity_ids: ["debug-placeholder"],
+  };
+
+  const hasDebugActivity = payload.activities.some(
+    (activity) => Number(activity?.year) === debugYear && String(activity?.date || "") === debugDate,
+  );
+  if (!hasDebugActivity) {
+    payload.activities.push({
+      date: debugDate,
+      hour: 8,
+      name: "Debug placeholder activity",
+      subtype: debugType,
+      type: debugType,
+      year: debugYear,
+    });
+  }
+
+  if (!payload.years.some((yearValue) => Number(yearValue) === debugYear)) {
+    payload.years.push(debugYear);
+  }
+}
+
 async function init() {
   syncRepoLink();
   syncFooterHostedLink();
@@ -4031,6 +4167,7 @@ async function init() {
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid dashboard data format.");
   }
+  applyDebugPayloadOverrides(payload);
   const repoCandidate = payloadRepoCandidate(payload);
   const profileUrl = payloadProfileUrl(payload);
   const sourceValue = payloadSource(payload);
