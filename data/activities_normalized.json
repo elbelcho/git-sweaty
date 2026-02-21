@@ -6369,5 +6369,18 @@
     "start_date_local": "2026-02-19T11:59:31",
     "type": "VirtualRide",
     "year": 2026
+  },
+  {
+    "date": "2026-02-20",
+    "distance": 15562.75,
+    "elevation_gain": 61.0,
+    "id": "21930693106",
+    "moving_time": 1872.0,
+    "name": "Zwift - Pacer Group Ride: The Fan Flats in Richmond with Bernie",
+    "raw_activity_type": "virtual_ride",
+    "raw_type": "virtual_ride",
+    "start_date_local": "2026-02-20T13:23:53",
+    "type": "VirtualRide",
+    "year": 2026
   }
 ]
