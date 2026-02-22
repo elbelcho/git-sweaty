@@ -4403,6 +4403,42 @@
       "type": "VirtualRide",
       "url": "https://connect.garmin.com/modern/activity/21930693106",
       "year": 2026
+    },
+    {
+      "date": "2026-02-21",
+      "hour": 14,
+      "name": "Zwift - At/Over/Under on Whole Lotta Lava in Watopia",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/21941984644",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-21",
+      "hour": 15,
+      "name": "Zwift - Sand And Sequoias in Watopia",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/21942190766",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-21",
+      "hour": 15,
+      "name": "Zwift - Repack Rush in Watopia",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/21942238802",
+      "year": 2026
+    },
+    {
+      "date": "2026-02-22",
+      "hour": 8,
+      "name": "Zwift - Sand And Sequoias in Watopia",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/21949114568",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -8704,11 +8740,31 @@
           "distance": 15562.75,
           "elevation_gain": 61.0,
           "moving_time": 1872.0
+        },
+        "2026-02-21": {
+          "activity_ids": [
+            "21941984644",
+            "21942190766",
+            "21942238802"
+          ],
+          "count": 3,
+          "distance": 14859.69970703125,
+          "elevation_gain": 135.0,
+          "moving_time": 2435.0
+        },
+        "2026-02-22": {
+          "activity_ids": [
+            "21949114568"
+          ],
+          "count": 1,
+          "distance": 22864.4609375,
+          "elevation_gain": 181.0,
+          "moving_time": 3131.0
         }
       }
     }
   },
-  "generated_at": "2026-02-21T15:26:18.100955+00:00",
+  "generated_at": "2026-02-22T15:26:28.373327+00:00",
   "other_bucket": "OtherSports",
   "repo": "elbelcho/git-sweaty-garmin",
   "source": "garmin",
