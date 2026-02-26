@@ -6434,5 +6434,18 @@
     "start_date_local": "2026-02-22T08:06:13",
     "type": "VirtualRide",
     "year": 2026
+  },
+  {
+    "date": "2026-02-25",
+    "distance": 19943.650390625,
+    "elevation_gain": 32.0,
+    "id": "21984009842",
+    "moving_time": 2415.0,
+    "name": "Zwift - Tempus Fugit in Watopia",
+    "raw_activity_type": "virtual_ride",
+    "raw_type": "virtual_ride",
+    "start_date_local": "2026-02-25T12:17:49",
+    "type": "VirtualRide",
+    "year": 2026
   }
 ]

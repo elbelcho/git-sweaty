@@ -4439,6 +4439,15 @@
       "type": "VirtualRide",
       "url": "https://connect.garmin.com/modern/activity/21949114568",
       "year": 2026
+    },
+    {
+      "date": "2026-02-25",
+      "hour": 12,
+      "name": "Zwift - Tempus Fugit in Watopia",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/21984009842",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -8760,11 +8769,20 @@
           "distance": 22864.4609375,
           "elevation_gain": 181.0,
           "moving_time": 3131.0
+        },
+        "2026-02-25": {
+          "activity_ids": [
+            "21984009842"
+          ],
+          "count": 1,
+          "distance": 19943.650390625,
+          "elevation_gain": 32.0,
+          "moving_time": 2415.0
         }
       }
     }
   },
-  "generated_at": "2026-02-25T16:03:58.134313+00:00",
+  "generated_at": "2026-02-26T15:54:03.641001+00:00",
   "other_bucket": "OtherSports",
   "repo": "elbelcho/git-sweaty-garmin",
   "source": "garmin",
