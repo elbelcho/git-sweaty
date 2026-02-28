@@ -4448,6 +4448,15 @@
       "type": "VirtualRide",
       "url": "https://connect.garmin.com/modern/activity/21984009842",
       "year": 2026
+    },
+    {
+      "date": "2026-02-27",
+      "hour": 12,
+      "name": "Zwift - Race: Stage 2: Zwift Games: Hudson Hustle (E)",
+      "subtype": "virtual_ride",
+      "type": "VirtualRide",
+      "url": "https://connect.garmin.com/modern/activity/22005784016",
+      "year": 2026
     }
   ],
   "aggregates": {
@@ -8778,11 +8787,20 @@
           "distance": 19943.650390625,
           "elevation_gain": 32.0,
           "moving_time": 2415.0
+        },
+        "2026-02-27": {
+          "activity_ids": [
+            "22005784016"
+          ],
+          "count": 1,
+          "distance": 20442.7109375,
+          "elevation_gain": 218.0,
+          "moving_time": 2826.0
         }
       }
     }
   },
-  "generated_at": "2026-02-27T15:37:42.126984+00:00",
+  "generated_at": "2026-02-28T15:23:14.776536+00:00",
   "other_bucket": "OtherSports",
   "repo": "elbelcho/git-sweaty-garmin",
   "source": "garmin",
